@@ -16,6 +16,8 @@ useEffect(()=> {
   console.log(uploadedImages)
 }, [uploadedImages])
 
+//user infor 
+
   useEffect(() => {
     loadImages()
   }, [user?.id]) // Add user.id as dependency to reload when user changes
