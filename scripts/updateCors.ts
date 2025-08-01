@@ -27,28 +27,7 @@ async function updateCorsSettings() {
     }
 
     console.log('Bucket updated successfully:', bucketData);
-
-    // Set CORS configuration
-    const { data: corsData, error: corsError } = await supabase
-      .storage
-      .setCorsConfig({
-        allowedOrigins: [
-          'http://localhost:3000',
-          'https://auoohjiiorpwfjddzalb.supabase.co',
-          'https://*.vercel.app',
-          'https://*.supabase.demovilla.com'
-        ],
-        allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['*'],
-        maxAgeSeconds: 3600,
-      });
-
-    if (corsError) {
-      console.error('Error setting CORS:', corsError);
-      return;
-    }
-
-    console.log('CORS configuration updated successfully:', corsData);
+    console.log('Note: CORS configuration must be set through the Supabase Dashboard or Management API');
   } catch (error) {
     console.error('Unexpected error:', error);
   }

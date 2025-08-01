@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -31,6 +32,15 @@ export const LoginForm: React.FC = () => {
       setLoading(false)
     }
   }
+
+  async function signInWithGithub() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+    })
+    console.log(data, error);
+    
+  }
+
 
   return (
     <div className="auth-container">
@@ -66,7 +76,13 @@ export const LoginForm: React.FC = () => {
           <button type="submit" disabled={loading} className="auth-button">
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
+
+          <button type="button" onClick={signInWithGithub} className="auth-button">
+            Sign In with GitHub
+          </button>
         </form>
+
+
         
         <p className="auth-link">
           Don't have an account? <Link to="/register">Sign up here</Link>
