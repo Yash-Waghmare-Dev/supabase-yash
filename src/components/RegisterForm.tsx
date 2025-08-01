@@ -37,7 +37,7 @@ export const RegisterForm: React.FC = () => {
       } else {
         setMessage('Check your email for the confirmation link!')
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

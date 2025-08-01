@@ -26,7 +26,7 @@ export const LoginForm: React.FC = () => {
       } else {
         navigate('/dashboard')
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

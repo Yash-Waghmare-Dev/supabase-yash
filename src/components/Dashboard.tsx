@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth()
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<{url: string, path: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   // const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -13,20 +13,14 @@ export const Dashboard: React.FC = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-  console.log('isBucketPublic:', isBucketPublic);
-}, [isBucketPublic]);
-
-useEffect(()=> {
-  console.log(uploadedImages)
-}, [uploadedImages])
-
-//user infor 
+    console.log('isBucketPublic:', isBucketPublic);
+  }, [isBucketPublic]);
 
   useEffect(() => {
-    loadImages()
-  }, [user?.id]) // Add user.id as dependency to reload when user changes
+    console.log(uploadedImages)
+  }, [uploadedImages])
 
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
     if (!user?.id) return;
     setIsLoading(true);
     setError(null);
@@ -36,8 +30,7 @@ useEffect(()=> {
       const { data: bucket, error: bucketError } = await supabase.storage.getBucket('images');
       if (bucketError) throw bucketError;
       
-      const isPublicBucket = bucket?.public || false;
-      setIsBucketPublic(isPublicBucket);
+      setIsBucketPublic(bucket?.public || false);
       
       // List all files in the user's folder
       const { data: files, error: listError } = await supabase.storage
@@ -54,7 +47,7 @@ useEffect(()=> {
         const imageUrls = await Promise.all(
           files.map(async (file) => {
             try {
-              if (isPublicBucket) {
+              if (isBucketPublic) {
                 // For public buckets, use getPublicUrl with cache buster
                 const { data: urlData } = supabase.storage
                   .from('images')
@@ -76,9 +69,12 @@ useEffect(()=> {
           })
         );
         
-        // Filter out any empty strings from failed URL generations
-        const validUrls = imageUrls.filter((url): url is string => Boolean(url));
-        setUploadedImages(validUrls);
+        // Filter out any empty objects from failed URL generations and create objects with url and path
+        const validImages = imageUrls.map((url, index) => ({
+          url,
+          path: `${user.id}/${files[index].name}`
+        })).filter(img => Boolean(img.url));
+        setUploadedImages(validImages);
       } else {
         setUploadedImages([]); // Clear images if no files found
       }
@@ -88,7 +84,11 @@ useEffect(()=> {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [user?.id, isBucketPublic]);
+
+  useEffect(() => {
+    loadImages()
+  }, [loadImages])
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -112,8 +112,8 @@ useEffect(()=> {
 
       setMessage('Image uploaded successfully!')
       loadImages() // Reload images after upload
-    } catch (error: any) {
-      setMessage(`Error uploading image: ${error.message}`)
+    } catch (error) {
+      setMessage(`Error uploading image: ${error instanceof Error ? error.message : 'Upload failed'}`)
     } finally {
       setIsUploading(false)
     }
@@ -124,17 +124,19 @@ useEffect(()=> {
   }
 
 
-  const handleDeleteImage = async (url: string) => {
+  const handleDeleteImage = async (path: string) => {
     try {
       const { error } = await supabase.storage
         .from('images')
-        .remove([url])
+        .remove([path])
       if (error) {
         throw error
       }
+      setMessage('Image deleted successfully!')
       loadImages() // Reload images after deletion
-    } catch (error: any) {
-      console.error('Error deleting image:', error.message)
+    } catch (error) {
+      console.error('Error deleting image:', error instanceof Error ? error.message : 'Delete failed')
+      setMessage('Failed to delete image')
     }
   }
   
@@ -144,7 +146,7 @@ useEffect(()=> {
       <div className="dashboard-header">
         <h1>Dashboard</h1>
         <div className="user-info">
-          <span>Welcome, {user?.email}</span>
+          <span>Welcome, {user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email}</span>
           <button onClick={handleSignOut} className="sign-out-button">
             Sign Out
           </button>
@@ -180,10 +182,10 @@ useEffect(()=> {
         <h2>Your Images</h2>
         <div className="images-grid">
           {uploadedImages.length > 0 ? (  
-            uploadedImages.map((url, index) => (
+            uploadedImages.map((image, index) => (
               <div key={index} className="image-item">
-                <img src={url} alt={`Uploaded ${index + 1}`} />
-                <button onClick={() => handleDeleteImage(url)}>Delete</button>
+                <img src={image.url} alt={`Uploaded ${index + 1}`} />
+                <button onClick={() => handleDeleteImage(image.path)} className="delete-button">Delete</button>
               </div>
             ))
           ) : (
