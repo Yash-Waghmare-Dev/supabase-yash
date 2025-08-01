@@ -21,18 +21,44 @@ export const Dashboard: React.FC = () => {
   }, [uploadedImages])
 
   const loadImages = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID available');
+      return;
+    }
+    
+    console.log('Loading images for user:', user.id);
     setIsLoading(true);
     setError(null);
     
     try {
-      // First, check if the bucket exists and get its public status
+      // Check Supabase connection first
+      console.log('Checking Supabase connection...');
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Auth error:', userError);
+        throw new Error(`Authentication failed: ${userError.message}`);
+      }
+      if (!currentUser) {
+        throw new Error('User not authenticated');
+      }
+      console.log('User authenticated:', currentUser.id);
+
+      // Since we know the images bucket exists, let's check its public status directly
+      console.log('Checking images bucket configuration...');
       const { data: bucket, error: bucketError } = await supabase.storage.getBucket('images');
-      if (bucketError) throw bucketError;
       
-      setIsBucketPublic(bucket?.public || false);
+      if (bucketError) {
+        console.error('Bucket access error:', bucketError);
+        // If we can't access the bucket info, assume it's public (based on your setup)
+        console.log('Cannot access bucket info, assuming public bucket');
+        setIsBucketPublic(true);
+      } else {
+        console.log('Images bucket found, public status:', bucket.public);
+        setIsBucketPublic(bucket.public || false);
+      }
       
       // List all files in the user's folder
+      console.log('Listing files in user folder:', `${user.id}/`);
       const { data: files, error: listError } = await supabase.storage
         .from('images')
         .list(`${user.id}/`, {
@@ -41,27 +67,38 @@ export const Dashboard: React.FC = () => {
           sortBy: { column: 'created_at', order: 'desc' },
         });
 
-      if (listError) throw listError;
+      if (listError) {
+        console.error('List error:', listError);
+        throw listError;
+      }
+      
+      console.log('Found files:', files?.length || 0);
 
       if (files && files.length > 0) {
+        console.log('Processing', files.length, 'files');
         const imageUrls = await Promise.all(
           files.map(async (file) => {
             try {
-              if (isBucketPublic) {
-                // For public buckets, use getPublicUrl with cache buster
-                const { data: urlData } = supabase.storage
-                  .from('images')
-                  .getPublicUrl(`${user.id}/${file.name}`);
-                return `${urlData.publicUrl}?t=${Date.now()}`;
-              } else {
-                // For private buckets, create a signed URL
-                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-                  .from('images')
-                  .createSignedUrl(`${user.id}/${file.name}`, 3600); // 1 hour expiry
-                
-                if (signedUrlError) throw signedUrlError;
-                return signedUrlData?.signedUrl || '';
+              console.log('Processing file:', file.name, 'isPublic:', isBucketPublic);
+              
+              // Try signed URL first (works for both public and private buckets)
+              const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                .from('images')
+                .createSignedUrl(`${user.id}/${file.name}`, 3600); // 1 hour expiry
+              
+              if (!signedUrlError && signedUrlData?.signedUrl) {
+                console.log('Signed URL generated:', signedUrlData.signedUrl);
+                return signedUrlData.signedUrl;
               }
+              
+              // Fallback to public URL if signed URL fails
+              console.log('Signed URL failed, trying public URL...');
+              const { data: urlData } = supabase.storage
+                .from('images')
+                .getPublicUrl(`${user.id}/${file.name}`);
+              console.log('Public URL generated:', urlData.publicUrl);
+              return `${urlData.publicUrl}?t=${Date.now()}`;
+              
             } catch (error) {
               console.error(`Error processing file ${file.name}:`, error);
               return ''; // Skip files that cause errors
@@ -80,7 +117,27 @@ export const Dashboard: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading images:', error);
-      setError('Failed to load images');
+      let errorMessage = 'Failed to load images';
+      
+      if (error instanceof Error) {
+        console.error('Detailed error:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        
+        if (error.message.includes('JWT')) {
+          errorMessage = 'Authentication error. Please sign out and sign in again.';
+        } else if (error.message.includes('permission') || error.message.includes('access')) {
+          errorMessage = 'Permission denied. Please check your account permissions.';
+        } else if (error.message.includes('bucket')) {
+          errorMessage = `Storage bucket error: ${error.message}`;
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
