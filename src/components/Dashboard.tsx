@@ -6,7 +6,7 @@ export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth()
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  // const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBucketPublic, setIsBucketPublic] = useState(false);
