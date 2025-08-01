@@ -12,6 +12,10 @@ export const Dashboard: React.FC = () => {
   const [isBucketPublic, setIsBucketPublic] = useState(false);
   const [message, setMessage] = useState('');
 
+  useEffect(() => {
+  console.log('isBucketPublic:', isBucketPublic);
+}, [isBucketPublic]);
+
 useEffect(()=> {
   console.log(uploadedImages)
 }, [uploadedImages])
