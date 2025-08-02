@@ -9,6 +9,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ data: { user: User | null; session: Session | null } | null; error: AuthError | null }>
   signIn: (email: string, password: string) => Promise<{ data: { user: User | null; session: Session | null } | null; error: AuthError | null }>
   signOut: () => Promise<void>
+  signInWithOAuth: (provider: 'google' | 'twitter' | 'facebook') => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -66,6 +67,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut()
   }
 
+  const signInWithOAuth = async (provider: 'google' | 'twitter' | 'facebook') => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+    })
+    if (error) {
+      console.error('Error signing in with OAuth:', error.message)
+    }
+  }
+
   const value = {
     user,
     session,
@@ -73,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signIn,
     signOut,
+    signInWithOAuth,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

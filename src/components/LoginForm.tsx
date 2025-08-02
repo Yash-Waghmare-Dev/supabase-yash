@@ -9,7 +9,7 @@ export const LoginForm: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { signIn } = useAuth()
+  const { signIn, signInWithOAuth } = useAuth()
   const navigate = useNavigate()
   //error message
 
@@ -76,14 +76,25 @@ export const LoginForm: React.FC = () => {
           <button type="submit" disabled={loading} className="auth-button">
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
-
-          <button type="button" onClick={signInWithGithub} className="auth-button">
-            Sign In with GitHub
-          </button>
         </form>
 
+        <div className="divider">OR</div>
 
-        
+        <div className="social-login-buttons">
+          <button onClick={() => signInWithOAuth('google')} className="social-button google" type="button">
+            <i className="fab fa-google"></i> Sign in with Google
+          </button>
+          <button onClick={() => signInWithOAuth('twitter')} className="social-button twitter" type="button">
+            <i className="fab fa-twitter"></i> Sign in with Twitter
+          </button>
+          <button onClick={() => signInWithOAuth('facebook')} className="social-button facebook" type="button">
+            <i className="fab fa-facebook"></i> Sign in with Facebook
+          </button>
+          <button onClick={signInWithGithub} className="social-button github" type="button">
+            <i className="fab fa-github"></i> Sign in with GitHub
+          </button>
+        </div>
+
         <p className="auth-link">
           Don't have an account? <Link to="/register">Sign up here</Link>
         </p>

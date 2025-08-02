@@ -10,7 +10,7 @@ export const RegisterForm: React.FC = () => {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const { signUp } = useAuth()
+  const { signUp, signInWithOAuth } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,6 +94,20 @@ export const RegisterForm: React.FC = () => {
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
+
+        <div className="divider">OR</div>
+
+        <div className="social-login-buttons">
+          <button onClick={() => signInWithOAuth('google')} className="social-button google" type="button">
+            <i className="fab fa-google"></i> Sign up with Google
+          </button>
+          <button onClick={() => signInWithOAuth('twitter')} className="social-button twitter" type="button">
+            <i className="fab fa-twitter"></i> Sign up with Twitter
+          </button>
+          <button onClick={() => signInWithOAuth('facebook')} className="social-button facebook" type="button">
+            <i className="fab fa-facebook"></i> Sign up with Facebook
+          </button>
+        </div>
         
         <p className="auth-link">
           Already have an account? <Link to="/login">Sign in here</Link>
